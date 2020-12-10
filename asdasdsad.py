@@ -1,22 +1,41 @@
-import tkinter as tk
+from tkinter import *
+from tkinter import messagebox
+import asyncio
+import threading
+import random
 
-root = tk.Tk()
-
-canvas1 = tk.Canvas(root, width=400, height=300)
-canvas1.pack()
-
-entry1 = tk.Entry(root)
-canvas1.create_window(200, 140, window=entry1)
-
-
-def getSquareRoot():
-    x1 = entry1.get()
-
-    label1 = tk.Label(root, text=float(x1) ** 0.5)
-    canvas1.create_window(200, 230, window=label1)
+def _asyncio_thread(async_loop):
+    async_loop.run_until_complete(do_urls())
 
 
-button1 = tk.Button(text='Get the Square Root', command=getSquareRoot)
-canvas1.create_window(200, 180, window=button1)
+def do_tasks(async_loop):
+    """ Button-Event-Handler starting the asyncio part. """
+    threading.Thread(target=_asyncio_thread, args=(async_loop,)).start()
 
-root.mainloop()
+
+async def one_url(url):
+    """ One task. """
+    sec = random.randint(1, 8)
+    await asyncio.sleep(sec)
+    return 'url: {}\tsec: {}'.format(url, sec)
+
+async def do_urls():
+    """ Creating and starting 10 tasks. """
+    tasks = [one_url(url) for url in range(10)]
+    completed, pending = await asyncio.wait(tasks)
+    results = [task.result() for task in completed]
+    print('\n'.join(results))
+
+
+def do_freezed():
+    messagebox.showinfo(message='Tkinter is reacting.')
+
+def main(async_loop):
+    root = Tk()
+    Button(master=root, text='Asyncio Tasks', command= lambda:do_tasks(async_loop)).pack()
+    buttonX = Button(master=root, text='Freezed???', command=do_freezed).pack()
+    root.mainloop()
+
+if __name__ == '__main__':
+    async_loop = asyncio.get_event_loop()
+    main(async_loop)

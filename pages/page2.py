@@ -9,7 +9,25 @@ import models.encoder as encoder
 import models.basic as decoder
 import models.bahdanau as bahdanau_decoder
 import models.luong as luong_decoder
+import os
+import asyncio
+import threading
 
+import time
+
+optimizer = tf.keras.optimizers.Adam()
+loss_object = tf.keras.losses.SparseCategoricalCrossentropy(
+    from_logits=True, reduction='none')
+
+
+def loss_function(real, pred):
+    mask = tf.math.logical_not(tf.math.equal(real, 0))
+    loss_ = loss_object(real, pred)
+
+    mask = tf.cast(mask, dtype=loss_.dtype)
+    loss_ *= mask
+
+    return tf.reduce_mean(loss_)
 
 
 
@@ -80,15 +98,13 @@ class Page2(ttk.Frame):
         self.defaultvalues = tk.Button(self, text="Set values to default", )
         self.defaultvalues.place(relx=.3, rely=.6)
         self.defaultvalues.config(command=self.resetvalue)
-
-        self.train_button = tk.Button(self, text="Train model", font=('Helvetica', 12), command=self.evalutemode)
+        async_loop = asyncio.get_event_loop()
+        self.train_button = tk.Button(self, text="Train model", font=('Helvetica', 12), command= lambda:self.do_tasks(async_loop))
         self.train_button.pack(side='bottom', fill='both')
 
-    def evalutemode(self):
-        print(self.modelname)
-        self.sethyperparam()
 
-        self.modelassemble()
+
+
 
     def ShowTheValue(self, args):
         self.value_label["text"] = str(self.batch_size.get())
@@ -158,37 +174,142 @@ class Page2(ttk.Frame):
     def modelassemble(self):
         print(self.vocab_inp_size, self.Embedding_dim, self.units,self.BATCH_SIZE)
 
-        page_encoder = self.models['encoder'].Encoder(self.vocab_inp_size,
+        self.page_encoder = self.models['encoder'].Encoder(self.vocab_inp_size,
                                                       self.Embedding_dim,
                                                       self.units,
                                                       self.BATCH_SIZE)
-        decoder_page = self.models['decoders'][self.modelname].Decoder(self.vocab_tar_size,
+        self.decoder_page = self.models['decoders'][self.modelname].Decoder(self.vocab_tar_size,
                                                                        self.Embedding_dim,
                                                                        self.units,
                                                                        self.BATCH_SIZE)
 
+        self.checkpoint_dir = './chekpoints/' + self.page1.getcombobox() + '/' + self.page1.getcombobox2()+ '/'
+        self.checkpoint_prefix = os.path.join(self.checkpoint_dir, "chekpoints")
+        self.checkpoint = tf.train.Checkpoint(optimizer=optimizer,
+                                              encoder=self.page_encoder,
+                                              decoder=self.decoder_page)
+
+
+        '''
         example_input_batch, example_target_batch = next(iter(self.dataset2))
         example_input_batch.shape,  example_target_batch.shape
         # sample input
-        sample_hidden = page_encoder.init_hidden_state()
-        sample_output, sample_hidden = page_encoder(example_input_batch, sample_hidden)
+        sample_hidden = self.page_encoder.init_hidden_state()
+        sample_output, sample_hidden = self.page_encoder(example_input_batch, sample_hidden)
         print('Encoder output shape: (batch size, sequence length, units) {}'.format(sample_output.shape))
         print('Encoder Hidden state shape: (batch size, units) {}'.format(sample_hidden.shape))
 
 
         if self.modelname == 'BASIC':
-            sample_decoder_output, _  = decoder_page(tf.random.uniform((self.BATCH_SIZE, 1)),
+            sample_decoder_output, _  = self.decoder_page(tf.random.uniform((self.BATCH_SIZE, 1)),
                                     sample_hidden)
             print('Decoder output shape: (batch_size, vocab size) {}'.format(sample_decoder_output.shape))
 
         if self.modelname == 'BAHDANAU':
-            sample_decoder_output, _, _ = decoder_page(tf.random.uniform((self.BATCH_SIZE, 1)),
+            sample_decoder_output, _, _ = self.decoder_page(tf.random.uniform((self.BATCH_SIZE, 1)),
                                                   sample_hidden, sample_output)
 
             print('Decoder output shape: (batch_size, vocab size) {}'.format(sample_decoder_output.shape))
 
         if self.modelname == 'LUONG':
-            sample_decoder_output, _, _ = decoder_page(tf.random.uniform((self.BATCH_SIZE, 1)),
+            sample_decoder_output, _, _ = self.decoder_page(tf.random.uniform((self.BATCH_SIZE, 1)),
                                                   sample_hidden, sample_output)
 
-            print('Decoder output shape: (batch_size, vocab size) {}'.format(sample_decoder_output.shape))
+            print('Decoder output shape: (batch_size, vocab size) {}'.format(sample_decoder_output.shape))'''
+
+    def _asyncio_thread(self,async_loop):
+        async_loop.run_until_complete(self.train())
+
+    def do_tasks(self,async_loop):
+        """ Button-Event-Handler starting the asyncio part. """
+        threading.Thread(target=self._asyncio_thread, args=(async_loop,)).start()
+
+    def evalutemode(self):
+            print(self.modelname)
+
+    @tf.function
+    def train_step(self,inp, targ, enc_hidden):
+        loss = 0
+
+        with tf.GradientTape() as tape:
+            '''
+                here we getting encoder output ((64, 20, 1024) , (64, 1024)).
+                by doing this enc_output[1:] we get last state(64,1024).
+            '''
+            enc_output, enc_hidden = self.page_encoder(inp, enc_hidden)
+
+            dec_hidden = enc_hidden
+
+            dec_input = tf.expand_dims([self.targ_lang.word_index['<start>']] * self.BATCH_SIZE, 1)
+
+            ''' 
+                Teacher forcing - feeding the target as the next input
+                i.e. first we passing encoder last state to decoder initial_state 
+                     and as input to the first time stamp we are passing <start> tag from every batch.
+                     out of first time stamp is 64, 1, 4483.this will go under argmax and find loss with next word of sentence(label).
+                     after that on next time stamp first word is input and second word is label.
+            '''
+            for t in range(1, targ.shape[1]):  # 12
+                # passing enc_output to the decoder
+                predictions, dec_hidden, _ = self.decoder_page(dec_input, dec_hidden, enc_output)
+
+                loss += loss_function(targ[:, t], predictions)
+
+                # using teacher forcing
+                dec_input = tf.expand_dims(targ[:, t], 1)
+
+        batch_loss = (loss / int(targ.shape[1]))
+
+        variables = self.page_encoder.trainable_variables +self.decoder_page.trainable_variables
+
+        gradients = tape.gradient(loss, variables)
+
+        optimizer.apply_gradients(zip(gradients, variables))
+
+        return batch_loss
+
+    ''' 
+    #lead check point
+    a = tf.train.latest_checkpoint(
+        checkpoint_dir, latest_filename=None
+    )
+    a
+    checkpoint.restore(a)
+    '''
+
+
+    async def train(self):
+        self.sethyperparam()
+
+        self.modelassemble()
+
+        for epoch in range(self.EPOCHS):
+            start = time.time()
+
+            '''on starting of every epoch iteration ecoder initial state is always zero '''
+            enc_hidden = self.page_encoder.init_hidden_state()
+
+            total_loss = 0
+
+            for (batch, (inp, targ)) in enumerate(self.dataset2.take(self.steps_per_epoch)):
+                batch_loss = self.train_step(inp, targ, enc_hidden)
+                total_loss += batch_loss
+
+                if batch % 100 == 0:
+                    print('Epoch {} Batch {} Loss {:.4f}'.format(epoch + 1,
+                                                                 batch,
+                                                                 batch_loss.numpy()))
+                    logger.info('Epoch {} Batch {} Loss {:.4f}'.format(epoch + 1,
+                                                                       batch,
+                                                                       batch_loss.numpy()))
+            # saving (checkpoint) the model every 2 epochs
+            if (epoch + 1) % 2 == 0:
+                self.checkpoint.save(file_prefix=self.checkpoint_prefix)
+
+            print('Epoch {} Loss {:.4f}'.format(epoch + 1,
+                                                total_loss / self.steps_per_epoch))
+            print('Time taken for 1 epoch {} sec\n'.format(time.time() - start))
+
+    '''this is same as train but we know we dont need back propagation in evaluate.
+       but we are checking. if we reached at <end> tag?
+    '''

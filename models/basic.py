@@ -13,8 +13,9 @@ class Decoder(tf.keras.Model):
                                        recurrent_initializer='glorot_uniform')
         self.fc = tf.keras.layers.Dense(vocab_size)
 
-    def __call__(self, x, enc_output):
+    def __call__(self,x, hidden, enc_output):
         x = self.embedding(x) #64, 20, 256 (batch , max length of sentence ,embedding_dim  )
-        output, state_h  = self.gru(x,enc_output )  #output = 64, 20, 1024 # state_h (last state) = 64, 1024
+        output, state_h  = self.gru(x,hidden )  #output = 64, 20, 1024 # state_h (last state) = 64, 1024
         x = self.fc(output) # 64, 1, 4483
-        return x, state_h
+        _=0
+        return x, state_h , _

@@ -119,5 +119,4 @@ class Page1(ttk.Frame):
         return self.combobox2.get()
 
     def show(self):
-
         self.tkraise()
