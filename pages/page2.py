@@ -42,7 +42,7 @@ class Page2(ttk.Frame):
         self.models={'encoder':encoder,
                      'decoders':{'BASIC':decoder,'BAHDANAU':bahdanau_decoder,'LUONG':luong_decoder } }
         self.page1 = page1
-        self.modelname =""
+        self.modelname =self.page1.getcombobox2()
         self.loadedstringcheck = " "
         label = ttk.Label(self, text="Adjust some hyperparameter", font=('Helvetica', 12))
         label.pack()
@@ -104,8 +104,6 @@ class Page2(ttk.Frame):
 
 
 
-
-
     def ShowTheValue(self, args):
         self.value_label["text"] = str(self.batch_size.get())
 
@@ -142,6 +140,7 @@ class Page2(ttk.Frame):
                 self.input_tensor,
                 self.target_tensor,
                 test_size=0.2)
+
 
 
             self.loadedstringcheck = config.getPreprocessData()
@@ -268,20 +267,23 @@ class Page2(ttk.Frame):
 
         return batch_loss
 
-    ''' 
-    #lead check point
-    a = tf.train.latest_checkpoint(
-        checkpoint_dir, latest_filename=None
-    )
-    a
-    checkpoint.restore(a)
-    '''
+
+
+
 
 
     async def train(self):
+        # lead check point
         self.sethyperparam()
 
         self.modelassemble()
+
+        a = tf.train.latest_checkpoint(self.checkpoint_dir, latest_filename=None)
+
+        #if a is not None:
+        self.checkpoint.restore(a)
+
+
 
         for epoch in range(self.EPOCHS):
             start = time.time()

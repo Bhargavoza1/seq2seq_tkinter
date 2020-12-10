@@ -34,7 +34,7 @@ class MainView(tk.Frame):
 
         self.p1 = Page1(container, self.b1 ,self.b2)
         self.p2 = Page2(container,page1=self.p1)
-        self.p3 = Page3(container,page1=self.p1)
+        self.p3 = Page3(container,page1=self.p1,page2=self.p2)
 
         container.pack(side="top", fill="both", expand=True)
 
@@ -42,7 +42,7 @@ class MainView(tk.Frame):
         self.p2.place(in_=container, x=0, y=0, relwidth=1, relheight=1)
         self.p3.place(in_=container, x=0, y=0, relwidth=1, relheight=1)
 
-        self.b1.config(command=self.p1.tkraise)
+        self.b1.config(command=self.gotopred)
         self.b2.config( command=self.page)
 
         horizontal_pane.add(self.b1)
@@ -76,6 +76,15 @@ class MainView(tk.Frame):
 
             #self.b2["state"] = "disabled"
             #self.b2["text"] = "disable"
+
+    def gotopred(self):
+        self.p1.load_data()
+        self.p2.datasplit()
+        self.p2.sethyperparam()
+        self.p2.modelassemble()
+        self.p3.show()
+        self.i = 2
+        self.b2["text"] = "Back to home"
 
 '''
 if __name__ == "__main__":

@@ -1,18 +1,18 @@
-
-
 import tkinter as tk
 from tkinter import ttk
-
-
+import numpy as np
+import tensorflow as tf
+import config.preprocess_data as preproc
+from config.logger import logger
 class Page3(ttk.Frame):
     Layout = "place"
     Title = "Home"
 
     #def __init__(self, parent, controller, SQL):
-    def __init__(self, parent,page1):
+    def __init__(self, parent,page1,page2):
         ttk.Frame.__init__(self, parent)
         self.page1 = page1
-
+        self.page2 = page2
 
         self.label = ttk.Label(self, text="Translate english to " , font=('Helvetica', 12))
         self.label.pack()
@@ -30,13 +30,64 @@ class Page3(ttk.Frame):
         self.translate_button.pack( side = 'bottom', fill='both')
 
 
+
     def evalutemode(self):
-        self.translate.config(text=self.message.get())
+
+        self.translate.config(text=self.translateword(self.message.get()))
 
     def show(self):
         strg = self.page1.getcombobox()
         strg = strg.lower()
         self.label.config(text="Translate english to "+strg)
-        import config.config as cf
-        print(cf.path_to_file)
+
+        a = tf.train.latest_checkpoint(self.page2.checkpoint_dir, latest_filename=None)
+        self.page2.checkpoint.restore(a)
+        logger.info(self.page2.targ_lang.index_word[1])
         self.tkraise()
+
+    def evaluate(self,sentence):
+        attention_plot = np.zeros((self.page2.max_length_targ, self.page2.max_length_inp))
+
+        sentence =  preproc.preproc_sentence(sentence)
+
+        inputs = [self.page2.inp_lang.word_index[i] for i in sentence.split(' ')]
+        inputs = tf.keras.preprocessing.sequence.pad_sequences([inputs],
+                                                               maxlen=self.page2.max_length_inp,
+                                                               padding='post')
+        inputs = tf.convert_to_tensor(inputs)
+
+        result = ''
+
+        hidden = [tf.zeros((1, self.page2.units))]
+        enc_out, enc_hidden = self.page2.page_encoder(inputs, hidden)
+
+        dec_hidden = enc_hidden
+        dec_input = tf.expand_dims([self.page2.targ_lang.word_index['<start>']], 0)
+
+        for t in range(self.page2.max_length_targ):
+            predictions, dec_hidden, attention_weights = self.page2.decoder_page(dec_input, dec_hidden, enc_out)
+
+            de_input = tf.argmax(predictions, -1)
+
+            result += self.page2.targ_lang.index_word[de_input.numpy()[0][0]] + ' '
+            '''
+            predicted_id = tf.argmax(predictions ).numpy()
+            print(tf.argmax(predictions ).numpy())
+            result  += targ_lang.index_word[predicted_id] + ' '
+
+            if targ_lang.index_word[predicted_id] == '<end>':
+              return result
+
+
+            dec_input = tf.expand_dims([predicted_id], 0)'''
+            if self.page2.targ_lang.index_word[de_input.numpy()[0][0]] == '<end>':
+                return result
+            dec_input = tf.expand_dims([de_input.numpy()[0][0]], 0)
+        return result
+
+    def translateword(self,sentence):
+        result  = self.evaluate(sentence)
+
+
+        print('Predicted translation: {}'.format(result))
+        return result

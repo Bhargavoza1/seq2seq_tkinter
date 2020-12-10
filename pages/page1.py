@@ -120,3 +120,6 @@ class Page1(ttk.Frame):
 
     def show(self):
         self.tkraise()
+
+
+
