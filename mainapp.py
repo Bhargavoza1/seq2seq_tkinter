@@ -44,12 +44,6 @@ class FormUi:
         logger.log(lvl, self.message.get())
 
 
-class ThirdUi:
-
-    def __init__(self, frame):
-        self.frame = frame
-        ttk.Label(self.frame, text='This is just an example of a third frame').grid(column=0, row=1, sticky=W)
-        ttk.Label(self.frame, text='With another line here!').grid(column=0, row=4, sticky=W)
 
 
 class App:
@@ -67,7 +61,7 @@ class App:
         form_frame = ttk.PanedWindow(horizontal_pane )
         form_frame.columnconfigure(0, weight=1)
         form_frame.rowconfigure(0, weight=1)
-        horizontal_pane.add(form_frame, weight=1)
+        horizontal_pane.add(form_frame, weight=2)
 
         console_frame = ttk.Labelframe(horizontal_pane, text="Console")
         console_frame.columnconfigure(0, weight=1)

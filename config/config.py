@@ -35,6 +35,7 @@ except:
 path_to_file =''
 def loaddata(lagselect = 'FRENCH'):
     global path_to_file
+    print(lagselect)
     new_location = os.getcwd()
     path_to_zip = tf.keras.utils.get_file(
         lagselector[lagselect][1] + '.zip', origin=lagselector[lagselect][0],

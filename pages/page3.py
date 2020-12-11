@@ -42,13 +42,14 @@ class Page3(ttk.Frame):
 
         a = tf.train.latest_checkpoint(self.page2.checkpoint_dir, latest_filename=None)
         self.page2.checkpoint.restore(a)
-        logger.info(self.page2.targ_lang.index_word[1])
+        #logger.info(self.page2.targ_lang.index_word[1])
+        print(self.page1.getcombobox2( ) )
         self.tkraise()
 
     def evaluate(self,sentence):
         attention_plot = np.zeros((self.page2.max_length_targ, self.page2.max_length_inp))
 
-        sentence =  preproc.preproc_sentence(sentence)
+        sentence =preproc.preproc_sentence(sentence)
 
         inputs = [self.page2.inp_lang.word_index[i] for i in sentence.split(' ')]
         inputs = tf.keras.preprocessing.sequence.pad_sequences([inputs],
@@ -65,26 +66,25 @@ class Page3(ttk.Frame):
         dec_input = tf.expand_dims([self.page2.targ_lang.word_index['<start>']], 0)
 
         for t in range(self.page2.max_length_targ):
-            predictions, dec_hidden, attention_weights = self.page2.decoder_page(dec_input, dec_hidden, enc_out)
+            predictions, dec_hidden, attention_weights =self.page2.decoder_page(dec_input,
+                                                                 dec_hidden,
+                                                                 enc_out)
 
-            de_input = tf.argmax(predictions, -1)
+            # storing the attention weights to plot later on
+            attention_weights = tf.reshape(attention_weights, (-1,))
+            attention_plot[t] = attention_weights.numpy()
 
-            result += self.page2.targ_lang.index_word[de_input.numpy()[0][0]] + ' '
-            '''
-            predicted_id = tf.argmax(predictions ).numpy()
-            print(tf.argmax(predictions ).numpy())
-            result  += targ_lang.index_word[predicted_id] + ' '
+            predicted_id = tf.argmax(predictions[0]).numpy()
 
-            if targ_lang.index_word[predicted_id] == '<end>':
-              return result
+            result += self.page2.targ_lang.index_word[predicted_id] + ' '
 
-
-            dec_input = tf.expand_dims([predicted_id], 0)'''
-            if self.page2.targ_lang.index_word[de_input.numpy()[0][0]] == '<end>':
+            if self.page2.targ_lang.index_word[predicted_id] == '<end>':
                 return result
-            dec_input = tf.expand_dims([de_input.numpy()[0][0]], 0)
-        return result
 
+            # the predicted ID is fed back into the model
+            dec_input = tf.expand_dims([predicted_id], 0)
+
+        return result
     def translateword(self,sentence):
         result  = self.evaluate(sentence)
 

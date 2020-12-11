@@ -74,12 +74,11 @@ class Page1(ttk.Frame):
 
 
     #self.button1.config(command=self.loaddata)
-
-    def OptionCallBack(self,*args ):
+    def cehckalldir(self):
         if not os.path.isdir('./assets/'+config.lagselector[self.getcombobox()][1]):
             self.button1["state"] = "disabled"
             self.button1["text"] = "disable"
-        elif not os.path.isdir('./chekpoints/') :
+        elif not os.path.isdir('./chekpoints/' + self.getcombobox() + '/' + self.getcombobox2()+ '/') :
             self.button1["state"] = "disabled"
             self.button1["text"] = "disable"
             self.label1.config(text='*You have to train the model',)
@@ -99,6 +98,8 @@ class Page1(ttk.Frame):
             self.button2["state"] = "disabled"
             self.downlaod_data["text"] = "Download dataset"
             self.label2.config(text='data set does not exists',foreground="red" )
+    def OptionCallBack(self,*args ):
+        self.cehckalldir()
 
 
     def downlaod_data_call(self):
@@ -119,6 +120,7 @@ class Page1(ttk.Frame):
         return self.combobox2.get()
 
     def show(self):
+        self.cehckalldir()
         self.tkraise()
 
 

@@ -17,5 +17,6 @@ class Decoder(tf.keras.Model):
         x = self.embedding(x) #64, 20, 256 (batch , max length of sentence ,embedding_dim  )
         output, state_h  = self.gru(x,hidden )  #output = 64, 20, 1024 # state_h (last state) = 64, 1024
         x = self.fc(output) # 64, 1, 4483
+        x = tf.squeeze(  x, axis=1 )
         _=0
         return x, state_h , _

@@ -125,10 +125,13 @@ class Page2(ttk.Frame):
 
 
     def show(self):
-        self.modelname = self.page1.getcombobox2()
-        print(self.modelname)
+
+
         self.datasplit()
         self.tkraise()
+
+        self.sethyperparam()
+        self.modelassemble()
 
     def datasplit(self):
         if self.loadedstringcheck !=  config.getPreprocessData():
@@ -171,6 +174,9 @@ class Page2(ttk.Frame):
 
 
     def modelassemble(self):
+
+        self.modelname = self.page1.getcombobox2()
+        print(self.modelname)
         print(self.vocab_inp_size, self.Embedding_dim, self.units,self.BATCH_SIZE)
 
         self.page_encoder = self.models['encoder'].Encoder(self.vocab_inp_size,
