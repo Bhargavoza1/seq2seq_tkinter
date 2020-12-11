@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 import config.preprocess_data as preproc
 from config.logger import logger
+import re
 class Page3(ttk.Frame):
     Layout = "place"
     Title = "Home"
@@ -88,6 +89,7 @@ class Page3(ttk.Frame):
     def translateword(self,sentence):
         result  = self.evaluate(sentence)
 
-
+        cleanString = re.sub('<end>', '', result)
+        logger.debug('Predicted translation: {}'.format(result))
         print('Predicted translation: {}'.format(result))
-        return result
+        return cleanString

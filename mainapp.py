@@ -63,7 +63,7 @@ class App:
         form_frame.rowconfigure(0, weight=1)
         horizontal_pane.add(form_frame, weight=2)
 
-        console_frame = ttk.Labelframe(horizontal_pane, text="Console")
+        console_frame = ttk.Labelframe(horizontal_pane, text="Readable only console")
         console_frame.columnconfigure(0, weight=1)
         console_frame.rowconfigure(0, weight=1)
         horizontal_pane.add(console_frame, weight=0)

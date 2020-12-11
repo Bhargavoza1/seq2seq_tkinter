@@ -17,8 +17,6 @@ from config.logger import logger
 
 
 class Page1(ttk.Frame):
-    Layout = "place"
-    Title = "Home"
 
     #def __init__(self, parent, controller, SQL):
     def __init__(self, parent,b1,b2):
@@ -31,6 +29,7 @@ class Page1(ttk.Frame):
         # Create a combobbox to select the logging level
         models = ['BASIC','BAHDANAU','LUONG']
         self.level2 = tk.StringVar()
+
         ttk.Label(self.frame, text='Select model:', font=('Helvetica', 10)).place(relx=.1, rely=.1)
         self.combobox2 = ttk.Combobox(
             self.frame, font=('Helvetica', 10),
@@ -63,7 +62,7 @@ class Page1(ttk.Frame):
             values=values
         )
         self.downlaod_data = tk.Button(self.frame, text="Download dataset",  )
-
+        self.level2.trace('w', self.OptionCallBack)
         #config.loaddata(self.combobox.get())
         self.combobox.current(0)
         self.combobox.place(relx=.3, rely=.2)

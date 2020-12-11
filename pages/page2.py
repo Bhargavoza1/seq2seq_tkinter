@@ -128,10 +128,14 @@ class Page2(ttk.Frame):
 
 
         self.datasplit()
-        self.tkraise()
-
         self.sethyperparam()
         self.modelassemble()
+        logger.warning("data is ready to train")
+        logger.info("adjust your hyperparameter")
+
+        self.tkraise()
+
+
 
     def datasplit(self):
         if self.loadedstringcheck !=  config.getPreprocessData():
@@ -151,7 +155,7 @@ class Page2(ttk.Frame):
             logger.info("target_tensor_train : {}".format(len(self.target_tensor_train)))
             logger.info("input_tensor_val : {}".format(len(self.input_tensor_val)))
             logger.info("target_tensor_val : {}".format(len(self.target_tensor_val)))
-            logger.warning("data is ready to train")
+
 
 
     def sethyperparam(self ):
@@ -280,6 +284,7 @@ class Page2(ttk.Frame):
 
     async def train(self):
         # lead check point
+        logger.warning('training started')
         self.sethyperparam()
 
         self.modelassemble()
@@ -313,10 +318,14 @@ class Page2(ttk.Frame):
             # saving (checkpoint) the model every 2 epochs
             if (epoch + 1) % 2 == 0:
                 self.checkpoint.save(file_prefix=self.checkpoint_prefix)
-
+            logger.debug('Epoch {} Loss {:.4f}'.format(epoch + 1,
+                                                total_loss / self.steps_per_epoch))
             print('Epoch {} Loss {:.4f}'.format(epoch + 1,
                                                 total_loss / self.steps_per_epoch))
+
+            logger.debug('Time taken for 1 epoch {} sec\n'.format(time.time() - start))
             print('Time taken for 1 epoch {} sec\n'.format(time.time() - start))
+            logger.warning('training finished')
 
     '''this is same as train but we know we dont need back propagation in evaluate.
        but we are checking. if we reached at <end> tag?
